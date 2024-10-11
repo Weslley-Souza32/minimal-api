@@ -20,7 +20,7 @@ namespace minimal_api.Domain.Services
             _context.SaveChanges();
         }
 
-        public List<Vehicle> GetAllVehicles(int page = 1, string? name = null, string? brand = null)
+        public List<Vehicle> GetAllVehicles(int? page = 1, string? name = null, string? brand = null)
         {
             var vehicle = _context.Vehicles.AsQueryable();
 
@@ -30,7 +30,8 @@ namespace minimal_api.Domain.Services
             }
 
             var pages = 10;
-            vehicle = vehicle.Skip((page - 1) * pages).Take(pages);
+            if(page != null)
+                vehicle = vehicle.Skip((int)(page - 1) * pages).Take(pages);
 
             return vehicle.ToList();
         }
