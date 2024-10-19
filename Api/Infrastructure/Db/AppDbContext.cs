@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using minimal_api.Domain.Entities;
 
 namespace minimal_api.Infrastructure.Db
