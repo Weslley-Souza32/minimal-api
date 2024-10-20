@@ -1,121 +1,72 @@
-// using Microsoft.EntityFrameworkCore;
-// using Microsoft.Extensions.Configuration;
-// using minimal_api.Domain.DTOs;
-// using minimal_api.Domain.Entities;
-// using minimal_api.Domain.Services;
-// using minimal_api.Infrastructure.Db;
-// using Moq;
+using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using minimal_api.Domain.Entities;
+using minimal_api.Domain.Services;
+using minimal_api.Infrastructure.Db;
 
-// namespace Test.Domain.Services
-// {
-//     [TestClass]
-//     public class AdministratorServiceTest
-//     {
-//         private AdministratorService _service;
-//         private Mock<AppDbContext> _mockContext;
+namespace Test.Domain.Services
+{
+    [TestClass]
+    public class AdministratorServiceTest
+    {
+        private AppDbContext CriarContextoDeTeste()
+        {
+            var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var path = Path.GetFullPath(Path.Combine(assemblyPath ?? "", "..", "..", ".."));
 
-//         [TestInitialize]
-//         public void Setup()
-//         {
-//             var options = new DbContextOptionsBuilder<AppDbContext>()
-//                 .UseInMemoryDatabase(databaseName: "TestDb")
-//                 .Options;
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(path ?? Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddEnvironmentVariables();
 
-//             // Utilizando o novo construtor que aceita DbContextOptions
-//             var context = new AppDbContext(options);
-//             _service = new AdministratorService(context);
+            var configuration = builder.Build();
 
-//             // Adicionando alguns administradores na base de dados de teste
-//             context.Administrators.AddRange(
-//                 new Administrator { Id = 1, Email = "admin1@test.com", Password = "password1" },
-//                 new Administrator { Id = 2, Email = "admin2@test.com", Password = "password2" }
-//             );
-//             context.SaveChanges();
-//         }
+            return new AppDbContext(configuration);
+        }
 
-//         [TestMethod]
-//         public void Login_ShouldReturnAdministrator_WhenCredentialsAreCorrect()
-//         {
-//             // Arrange
-//             var loginDTO = new LoginDTO { Email = "admin1@test.com", Password = "password1" };
 
-//             // Act
-//             var result = _service.Login(loginDTO);
+        [TestMethod]
+        public void TestandoSalvarAdministrador()
+        {
+            // Arrange
+            var context = CriarContextoDeTeste();
+            context.Database.ExecuteSqlRaw("TRUNCATE TABLE Administrators");
 
-//             // Assert
-//             Assert.IsNotNull(result);
-//             Assert.AreEqual(1, result.Id);
-//         }
+            var adm = new Administrator();
+            adm.Email = "teste@teste.com";
+            adm.Password = "teste";
+            adm.Profile = "Adm";
 
-//         [TestMethod]
-//         public void Login_ShouldReturnNull_WhenCredentialsAreIncorrect()
-//         {
-//             // Arrange
-//             var loginDTO = new LoginDTO { Email = "wrong@test.com", Password = "wrongpassword" };
+            var administratorService = new AdministratorService(context);
 
-//             // Act
-//             var result = _service.Login(loginDTO);
+            // Act
+            administratorService.PostAdministrator(adm);
 
-//             // Assert
-//             Assert.IsNull(result);
-//         }
+            // Assert
+            Assert.AreEqual(1, administratorService.GetAllAdministrators(1).Count());
+        }
 
-//         [TestMethod]
-//         public void GetAllAdministrators_ShouldReturnAllAdmins_WhenNoPaging()
-//         {
-//             // Act
-//             var result = _service.GetAllAdministrators(null);
+        [TestMethod]
+        public void TestandoBuscaPorId()
+        {
+            // Arrange
+            var context = CriarContextoDeTeste();
+            context.Database.ExecuteSqlRaw("TRUNCATE TABLE Administrators");
 
-//             // Assert
-//             Assert.AreEqual(2, result.Count);
-//         }
+            var adm = new Administrator();
+            adm.Email = "teste@teste.com";
+            adm.Password = "teste";
+            adm.Profile = "Adm";
 
-//         [TestMethod]
-//         public void GetAllAdministrators_ShouldReturnPagedAdmins_WhenPageIsSpecified()
-//         {
-//             // Act
-//             var result = _service.GetAllAdministrators(1);
+            var administratorService = new AdministratorService(context);
 
-//             // Assert
-//             Assert.AreEqual(2, result.Count);
-//         }
+            // Act
+            administratorService.PostAdministrator(adm);
+            var admDoBanco = administratorService.GetById(adm.Id);
 
-//         [TestMethod]
-//         public void PostAdministrator_ShouldAddNewAdministrator()
-//         {
-//             // Arrange
-//             var newAdmin = new Administrator { Id = 3, Email = "admin3@test.com", Password = "password3" };
-
-//             // Act
-//             var result = _service.PostAdministrator(newAdmin);
-
-//             // Assert
-//             Assert.IsNotNull(result);
-//             Assert.AreEqual(3, result.Id);
-
-//             var admins = _service.GetAllAdministrators(null);
-//             Assert.AreEqual(3, admins.Count); // Deve ter 3 admins agora
-//         }
-
-//         [TestMethod]
-//         public void GetById_ShouldReturnAdministrator_WhenIdExists()
-//         {
-//             // Act
-//             var result = _service.GetById(1);
-
-//             // Assert
-//             Assert.IsNotNull(result);
-//             Assert.AreEqual(1, result.Id);
-//         }
-
-//         [TestMethod]
-//         public void GetById_ShouldReturnNull_WhenIdDoesNotExist()
-//         {
-//             // Act
-//             var result = _service.GetById(99);
-
-//             // Assert
-//             Assert.IsNull(result);
-//         }
-//     }
-// }
+            // Assert
+            Assert.AreEqual(1, admDoBanco?.Id);
+        }
+    }
+}
